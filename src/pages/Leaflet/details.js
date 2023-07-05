@@ -9,7 +9,7 @@ const ShipDetails = () => {
   useEffect(() => {
     const fetchShipData = async () => {
       try {
-        const response = await fetch(`http://3.24.139.235:3000/api/ships/${mmsi}`, {
+        const response = await fetch(`https://demos-mh4n.onrender.com/api/ships/${mmsi}`, {
           headers: {
             "Content-Type": "application/json",
           },
