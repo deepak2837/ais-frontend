@@ -8,17 +8,24 @@ const ShipDetails = () => {
 
   useEffect(() => {
     const fetchShipData = async () => {
-      try {
-        const response = await fetch(`https://demos-mh4n.onrender.com/api/ships/${mmsi}`, {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-        const data = await response.json();
-        console.log(data)
-        setShipData(data);
-      } catch (error) {
-        console.error(error);
+      // Check if the data is already stored in local storage
+      const cachedData = localStorage.getItem(`shipData_${mmsi}`);
+      if (cachedData) {
+        setShipData(JSON.parse(cachedData));
+      } else {
+        try {
+          const response = await fetch(`https://demos-mh4n.onrender.com/api/ships/${mmsi}`, {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+          const data = await response.json();
+          console.log(data);
+          setShipData(data);
+          localStorage.setItem(`shipData_${mmsi}`, JSON.stringify(data));
+        } catch (error) {
+          console.error(error);
+        }
       }
     };
 
@@ -30,7 +37,6 @@ const ShipDetails = () => {
   }
 
   const {
-   
     vesselName,
     imoNumber,
     shipType,
