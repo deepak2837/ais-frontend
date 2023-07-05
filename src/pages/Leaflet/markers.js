@@ -1,7 +1,6 @@
-import React, { useState, useRef, useMemo } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { MapContainer as Map, TileLayer, Marker, Popup, Tooltip } from "react-leaflet";
 import L from "leaflet";
-import { useEffect } from 'react';
 import axios from 'axios';
 import "leaflet/dist/leaflet.css";
 import osm from "./osm-providers";
@@ -13,7 +12,6 @@ function TooltipCircle({ ship }) {
   const navigate= useNavigate();
 
   const handleClick = () => {
- 
     navigate(`/leaflet/${ship.mmsi}`);
   };
 
@@ -23,9 +21,7 @@ function TooltipCircle({ ship }) {
       eventHandlers={{ click: handleClick }}
       icon={markerIcon}
     >
-     
-        <Tooltip>{ship.name} {ship.timestamp}</Tooltip>
-  
+      <Tooltip>{ship.name} {ship.timestamp}</Tooltip>
     </Marker>
   );
 }
@@ -61,8 +57,11 @@ const MarkersMap = () => {
       }
     };
 
-    fetchData();
-  }, []);
+    // Fetch data only if the ships state is empty
+    if (ships.length === 0) {
+      fetchData();
+    }
+  }, [ships]);
 
   return (
     <>
