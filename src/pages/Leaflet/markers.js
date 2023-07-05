@@ -9,7 +9,7 @@ import Header from "components/Header";
 import { useNavigate } from "react-router-dom";
 
 function TooltipCircle({ ship }) {
-  const navigate= useNavigate();
+  const navigate = useNavigate();
 
   const handleClick = () => {
     navigate(`/leaflet/${ship.mmsi}`);
@@ -44,24 +44,28 @@ const MarkersMap = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        const response = await axios.get('https://demos-mh4n.onrender.com/api/ships/markerdata', {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        setShips(response.data);
-        console.log(response.data);
-      } catch (error) {
-        console.error('Error:', error);
+      // Check if the data is already stored in local storage
+      const cachedData = localStorage.getItem('shipData');
+      if (cachedData) {
+        setShips(JSON.parse(cachedData));
+      } else {
+        try {
+          const response = await axios.get('https://demos-mh4n.onrender.com/api/ships/markerdata', {
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          setShips(response.data);
+          localStorage.setItem('shipData', JSON.stringify(response.data));
+          console.log(response.data);
+        } catch (error) {
+          console.error('Error:', error);
+        }
       }
     };
 
-    // Fetch data only if the ships state is empty
-    if (ships.length === 0) {
-      fetchData();
-    }
-  }, [ships]);
+    fetchData();
+  }, []);
 
   return (
     <>
