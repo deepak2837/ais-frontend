@@ -49,7 +49,7 @@ const MarkersMap = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('http://3.24.139.235:3000/api/ships/markerdata', {
+        const response = await axios.get('https://demos-mh4n.onrender.com/api/ships/markerdata', {
           headers: {
             'Content-Type': 'application/json',
           },
