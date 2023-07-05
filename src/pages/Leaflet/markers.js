@@ -1,103 +1,97 @@
-import React, { useState, useEffect } from "react";
-import "./VesselDetails.css";
-import { useParams } from "react-router-dom";
+import React, { useState, useRef, useEffect } from "react";
+import { MapContainer as Map, TileLayer, Marker, Popup, Tooltip } from "react-leaflet";
+import L from "leaflet";
+import axios from 'axios';
+import "leaflet/dist/leaflet.css";
+import osm from "./osm-providers";
+import PrintControl from "./PrintControl";
+import Header from "components/Header";
+import { useNavigate } from "react-router-dom";
 
-const ShipDetails = () => {
-  const { mmsi } = useParams();
-  const [shipData, setShipData] = useState(null);
+function TooltipCircle({ ship }) {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate(`/leaflet/${ship.mmsi}`);
+  };
+
+  return (
+    <Marker
+      position={[ship.lng, ship.lat]}
+      eventHandlers={{ click: handleClick }}
+      icon={markerIcon}
+    >
+      <Tooltip>{ship.name} {ship.timestamp}</Tooltip>
+    </Marker>
+  );
+}
+
+const markerIcon = L.icon({
+  iconUrl: require("resources/images/marker.png"),
+  iconSize: [40, 40],
+  iconAnchor: [17, 46], //[left/right, top/bottom]
+  popupAnchor: [0, -46], //[left/right, top/bottom]
+});
+
+const MarkersMap = () => {
+  const [center] = useState({
+    lat: "18.987807",
+    lng: "72.836447",
+  });
+  const ZOOM_LEVEL = 7;
+  const mapRef = useRef();
+  const [ships, setShips] = useState([]);
 
   useEffect(() => {
-    const fetchShipData = async () => {
+    const fetchData = async () => {
       // Check if the data is already stored in local storage
-      const cachedData = localStorage.getItem(`shipData_${mmsi}`);
+      const cachedData = localStorage.getItem('shipData');
       if (cachedData) {
-        setShipData(JSON.parse(cachedData));
+        setShips(JSON.parse(cachedData));
       } else {
         try {
-          const response = await fetch(`https://demos-mh4n.onrender.com/api/ships/${mmsi}`, {
+          const response = await axios.get('https://demos-mh4n.onrender.com/api/ships/markerdata', {
             headers: {
-              "Content-Type": "application/json",
+              'Content-Type': 'application/json',
             },
           });
-          const data = await response.json();
-          console.log(data);
-          setShipData(data);
-          localStorage.setItem(`shipData_${mmsi}`, JSON.stringify(data));
+          setShips(response.data);
+          localStorage.setItem('shipData', JSON.stringify(response.data));
+          console.log(response.data);
         } catch (error) {
-          console.error(error);
+          console.error('Error:', error);
         }
       }
     };
 
-    fetchShipData();
-  }, [mmsi]);
-
-  if (!shipData) {
-    return <div>Loading...</div>;
-  }
-
-  const {
-    vesselName,
-    imoNumber,
-    shipType,
-    flag,
-    grossTonnage,
-    summerDeadweight,
-    lengthOverall,
-    beam,
-    yearOfBuilt,
-    registeredOwner,
-    year,
-  } = shipData;
-
-  // Generate the static image URL based on the mmsi number
-  const image = shipData.image ? `/images/${mmsi}.jpg` : '/images/dummy.jpg';
+    fetchData();
+  }, []);
 
   return (
-    <div className="vessel-details-container">
-      <div className="image-container">
-        <img src={image} alt={vesselName} />
+    <>
+      <Header title="Drishti" />
+
+      <div className="row">
+        <div className="col text-center">
+          <h2>Adding Markers to react leaflet</h2>
+          <p>Loading basic map using layer from maptiler</p>
+          <div className="col">
+            <Map center={center} zoom={ZOOM_LEVEL} ref={mapRef}>
+              <PrintControl mapRef={mapRef} />
+              <TileLayer
+                url={osm.maptiler.url}
+                attribution={osm.maptiler.attribution}
+              />
+
+              {ships.map((ship, idx) => (
+                <TooltipCircle ship={ship} key={idx} />
+              ))}
+            </Map>
+          </div>
+        </div>
       </div>
-      <div className="details-container">
-        <h2>{vesselName}</h2>
-        <ul>
-          <li>
-            <strong>MMSI:</strong> {mmsi}
-          </li>
-          <li>
-            <strong>IMO Number:</strong> {imoNumber}
-          </li>
-          <li>
-            <strong>Ship Type:</strong> {shipType}
-          </li>
-          <li>
-            <strong>Flag:</strong> {flag}
-          </li>
-          <li>
-            <strong>Gross Tonnage:</strong> {grossTonnage}
-          </li>
-          <li>
-            <strong>Summer Deadweight:</strong> {summerDeadweight}
-          </li>
-          <li>
-            <strong>Length Overall:</strong> {lengthOverall}
-          </li>
-          <li>
-            <strong>Beam:</strong> {beam}
-          </li>
-          <li>
-            <strong>Year of Built:</strong> {yearOfBuilt}
-          </li>
-          <li>
-            <strong>Registered Owner:</strong> {registeredOwner}
-          </li>
-          <li>
-            <strong>Year:</strong> {year}
-          </li>
-        </ul>
-      </div>
-    </div>
+    </>
   );
 };
 
-export default ShipDetails;
+export default MarkersMap;
