@@ -1,116 +1,103 @@
-import React, { useState, useEffect, useRef } from "react";
-import Header from "components/Header";
-import "leaflet-draw/dist/leaflet.draw.css";
-import L from "leaflet";
-import axios from 'axios';
-import { MapContainer as Map, TileLayer, Tooltip, Marker, FeatureGroup } from "react-leaflet";
-import { EditControl } from "react-leaflet-draw";
-import osm from "./osm-providers";
-import "leaflet/dist/leaflet.css";
+import React, { useState, useEffect } from "react";
+import "./VesselDetails.css";
+import { useParams } from "react-router-dom";
 
-import ExternalInfo from "components/ExternalInfo";
-
-delete L.Icon.Default.prototype._getIconUrl;
-
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.1/images/marker-icon.png",
-  iconUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.1/images/marker-icon.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.1/images/marker-shadow.png",
-});
-
-const markerIcon = new L.Icon({
-  iconUrl: require("resources/images/marker.png"),
-  iconSize: [40, 40],
-  iconAnchor: [17, 46], //[left/right, top/bottom]
-  popupAnchor: [0, -46], //[left/right, top/bottom]
-});
-const DrawMap = () => {
-  const [center] = useState({ lat: "18.987807", lng: "72.836447" });
-  const ZOOM_LEVEL = 7;
-  const mapRef = useRef();
-  const [ships, setShips] = useState([]);
+const ShipDetails = () => {
+  const { mmsi } = useParams();
+  const [shipData, setShipData] = useState(null);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchShipData = async () => {
       // Check if the data is already stored in local storage
-      const cachedData = localStorage.getItem('shipData');
+      const cachedData = localStorage.getItem(`shipData_${mmsi}`);
       if (cachedData) {
-        setShips(JSON.parse(cachedData));
+        setShipData(JSON.parse(cachedData));
       } else {
         try {
-          const response = await axios.get('https://demos-mh4n.onrender.com/api/ships/markerdata', {
+          const response = await fetch(`https://demos-mh4n.onrender.com/api/ships/${mmsi}`, {
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
           });
-          setShips(response.data);
-          localStorage.setItem('shipData', JSON.stringify(response.data));
-          console.log(response.data);
+          const data = await response.json();
+          console.log(data);
+          setShipData(data);
+          localStorage.setItem(`shipData_${mmsi}`, JSON.stringify(data));
         } catch (error) {
-          console.error('Error:', error);
+          console.error(error);
         }
       }
     };
 
-    fetchData();
-  }, []);
+    fetchShipData();
+  }, [mmsi]);
 
-  const _created = (e) => console.log(e);
+  if (!shipData) {
+    return <div>Loading...</div>;
+  }
+
+  const {
+    vesselName,
+    imoNumber,
+    shipType,
+    flag,
+    grossTonnage,
+    summerDeadweight,
+    lengthOverall,
+    beam,
+    yearOfBuilt,
+    registeredOwner,
+    year,
+  } = shipData;
+
+  // Generate the static image URL based on the mmsi number
+  const image = shipData.image ? `/images/${mmsi}.jpg` : '/images/dummy.jpg';
 
   return (
-    <>
-      <Header title="Drishti" />
-
-      <ExternalInfo page="leafletDraw" />
-
-      <div className="row">
-        <div className="col text-center">
-          <h2>Draw shapes on map</h2>
-
-          <div className="col">
-            <Map center={center} zoom={ZOOM_LEVEL} ref={mapRef}>
-
-              <FeatureGroup>
-                <EditControl
-                  position="topright"
-                  onCreated={_created}
-                  draw={
-                    {
-                      /* rectangle: false,
-                    circle: false,
-                    circlemarker: false,
-                    marker: false,
-                    polyline: false, */
-                    }
-                  }
-                />
-                {ships.map((ship, idx) => (
-                  <Marker
-                    position={[ship.lng, ship.lat]}
-                    icon={markerIcon}
-                    key={idx}
-                  >
-                    <Tooltip>
-                      <b>
-                        {ship.name}, {ship.timestamp}
-                      </b>
-                    </Tooltip>
-                  </Marker>
-                ))}
-              </FeatureGroup>
-              <TileLayer
-                url={osm.maptiler.url}
-                attribution={osm.maptiler.attribution}
-              />
-            </Map>
-          </div>
-        </div>
+    <div className="vessel-details-container">
+      <div className="image-container">
+        <img src={image} alt={vesselName} />
       </div>
-    </>
+      <div className="details-container">
+        <h2>{vesselName}</h2>
+        <ul>
+          <li>
+            <strong>MMSI:</strong> {mmsi}
+          </li>
+          <li>
+            <strong>IMO Number:</strong> {imoNumber}
+          </li>
+          <li>
+            <strong>Ship Type:</strong> {shipType}
+          </li>
+          <li>
+            <strong>Flag:</strong> {flag}
+          </li>
+          <li>
+            <strong>Gross Tonnage:</strong> {grossTonnage}
+          </li>
+          <li>
+            <strong>Summer Deadweight:</strong> {summerDeadweight}
+          </li>
+          <li>
+            <strong>Length Overall:</strong> {lengthOverall}
+          </li>
+          <li>
+            <strong>Beam:</strong> {beam}
+          </li>
+          <li>
+            <strong>Year of Built:</strong> {yearOfBuilt}
+          </li>
+          <li>
+            <strong>Registered Owner:</strong> {registeredOwner}
+          </li>
+          <li>
+            <strong>Year:</strong> {year}
+          </li>
+        </ul>
+      </div>
+    </div>
   );
 };
 
-export default DrawMap;
+export default ShipDetails;
